@@ -19,6 +19,8 @@ var (
 	respInternalError     = NewResponseFail(3000, "vimages internal error")
 	respUnsupportedMethod = NewResponseFail(3001, "unsupported http method")
 	respBadTarget         = NewResponseFail(3002, "no such target in database")
+	respBadPut            = NewResponseFail(3003, "can't put on a folder without a valid command parameter")
+	respCollission        = NewResponseFail(3004, "can't post here without overwrite order")
 
 	respPrivilegesError    = NewResponseFail(2000, "privileges internal error")
 	respInvalidCredentials = NewResponseFail(2001, "invalid login credentials")
