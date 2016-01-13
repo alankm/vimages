@@ -24,6 +24,8 @@ func post(r *Request) *Response {
 }
 
 func put(r *Request) *Response {
+
+	fmt.Println("z")
 	obj, err := getObject(r.tx, r.s, r.Path)
 	if err != nil {
 		switch err {
@@ -36,9 +38,12 @@ func put(r *Request) *Response {
 		}
 	}
 
+	fmt.Println("y")
+
 	switch r.GetParam("command") {
 	case "chmod":
-		val, err := r.s.Write(obj, "CHMOD")
+		fmt.Println("x")
+		val, err := r.s.Write(obj, "CHMOD", r.GetHeader("Chmod"))
 		if err != nil {
 			switch err {
 			case errDenied:
@@ -47,6 +52,7 @@ func put(r *Request) *Response {
 				return respInternalError
 			}
 		}
+		fmt.Println("w")
 		if val == nil {
 			return new(Response)
 		}
@@ -56,8 +62,9 @@ func put(r *Request) *Response {
 		default:
 			return respInternalError
 		}
+		fmt.Println("v")
 	case "chown":
-		val, err := r.s.Write(obj, "CHOWN")
+		val, err := r.s.Write(obj, "CHOWN", r.GetHeader("Chown"))
 		if err != nil {
 			switch err {
 			case errDenied:
@@ -76,7 +83,7 @@ func put(r *Request) *Response {
 			return respInternalError
 		}
 	case "chgrp":
-		val, err := r.s.Write(obj, "CHGRP")
+		val, err := r.s.Write(obj, "CHGRP", r.GetHeader("Chgrp"))
 		if err != nil {
 			switch err {
 			case errDenied:
@@ -181,6 +188,9 @@ func put(r *Request) *Response {
 func get(r *Request) *Response {
 	obj, err := getObject(r.tx, r.s, r.Path)
 	if err != nil {
+		if err.Error() == "access denied" {
+			return respAccessDenied
+		}
 		switch err {
 		case errExist:
 			return respBadTarget
@@ -200,6 +210,9 @@ func get(r *Request) *Response {
 		}
 		val, err := r.s.Read(obj, attr)
 		if err != nil {
+			if err.Error() == "access denied" {
+				return respAccessDenied
+			}
 			switch err {
 			case errDenied:
 				return respAccessDenied
@@ -210,6 +223,9 @@ func get(r *Request) *Response {
 
 		err, ok := val.(error)
 		if ok {
+			if err.Error() == "access denied" {
+				return respAccessDenied
+			}
 			switch err {
 			case errDenied:
 				return respAccessDenied
@@ -230,6 +246,9 @@ func get(r *Request) *Response {
 	case "folder":
 		val, err := r.s.Read(obj, r.GetParam("format"))
 		if err != nil {
+			if err.Error() == "access denied" {
+				return respAccessDenied
+			}
 			switch err {
 			case errDenied:
 				return respAccessDenied
@@ -240,6 +259,9 @@ func get(r *Request) *Response {
 
 		err, ok := val.(error)
 		if ok {
+			if err.Error() == "access denied" {
+				return respAccessDenied
+			}
 			switch err {
 			case errDenied:
 				return respAccessDenied

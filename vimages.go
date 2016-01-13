@@ -76,3 +76,43 @@ func (v *Vimages) Overwrite(path string) error {
 func (v *Vimages) Snapshot() ([]byte, error) {
 	return ioutil.ReadFile(v.path)
 }
+
+func (v *Vimages) Do(request *Request) (*Response, error) {
+
+	var err error
+	request.s, err = v.users.LoginHash(request.Username, request.Hashword)
+	if err != nil {
+		return nil, err
+	}
+	defer request.s.Logout()
+
+	request.tx, err = v.db.Begin()
+	if err != nil {
+		return nil, err
+	}
+
+	var response *Response
+
+	switch request.Method {
+	case "POST":
+		response = post(request)
+	case "PUT":
+		response = put(request)
+	case "GET":
+		response = get(request)
+	case "DELETE":
+		response = delete(request)
+	default:
+		defer request.tx.Rollback()
+		return nil, errMethod
+	}
+
+	if response.Fail {
+		defer request.tx.Rollback()
+	} else {
+		defer request.tx.Commit()
+	}
+
+	return response, nil
+
+}

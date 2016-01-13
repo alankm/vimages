@@ -235,9 +235,11 @@ func (f *folder) Read(args ...string) interface{} {
 	}
 
 	var names []string
+	var pref string
 	for _, child := range ret {
-		splits := strings.Split(child.path, "/")
-		names = append(names, splits[len(splits)-1])
+		i := strings.LastIndex(child.path, "/")
+		pref = child.path[:i+1]
+		names = append(names, child.path[i+1:])
 	}
 
 	sort.Strings(names)
@@ -245,7 +247,7 @@ func (f *folder) Read(args ...string) interface{} {
 	if args != nil && len(args) > 0 && args[0] == "long" {
 		var list []longData
 		for _, name := range names {
-			rec := ret[name]
+			rec := ret[pref+name]
 			t := "image"
 			if rec.dir {
 				t = "folder"
@@ -261,7 +263,7 @@ func (f *folder) Read(args ...string) interface{} {
 	} else {
 		var list []shortData
 		for _, name := range names {
-			rec := ret[name]
+			rec := ret[pref+name]
 			t := "image"
 			if rec.dir {
 				t = "folder"
@@ -277,18 +279,20 @@ func (f *folder) Read(args ...string) interface{} {
 }
 
 func (f *folder) Write(args ...string) interface{} {
-
+	fmt.Println("1")
 	if !f.s.CanExec(f) {
 		return errDenied
 	}
+	fmt.Println("2")
 
 	if args == nil || len(args) != 2 {
 		return errBadWrite
 	}
+	fmt.Println("3")
 
 	switch args[0] {
 	case "CHMOD":
-		if f.s.CanChown(f.rules, args[1]) {
+		if f.s.CanChmod(f.rules, args[1]) {
 			f.tx.Exec("UPDATE vimages SET permissions=? WHERE path=?", args[1], f.path)
 			return nil
 		}
