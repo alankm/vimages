@@ -2,8 +2,8 @@ package vimages
 
 import (
 	"database/sql"
+	"fmt"
 	"io/ioutil"
-	"os"
 
 	"github.com/alankm/privileges"
 	"github.com/mattn/go-sqlite3"
@@ -63,12 +63,11 @@ func (v *Vimages) setup() error {
 
 }
 
-func (v *Vimages) Overwrite(path string) error {
+func (v *Vimages) Restore(snapshot []byte) error {
+
 	v.db.Close()
-	err := os.Rename(path, v.path)
-	if err != nil {
-		return err
-	}
+	ioutil.WriteFile(v.path, snapshot, 0775)
+	v.db, _ = sql.Open("sqlite3_fk", v.path)
 	return v.setup()
 
 }
@@ -77,18 +76,18 @@ func (v *Vimages) Snapshot() ([]byte, error) {
 	return ioutil.ReadFile(v.path)
 }
 
-func (v *Vimages) Do(request *Request) (*Response, error) {
+func (v *Vimages) Do(request *Request) *Response {
 
 	var err error
 	request.s, err = v.users.LoginHash(request.Username, request.Hashword)
 	if err != nil {
-		return nil, err
+		return respPrivilegesError
 	}
 	defer request.s.Logout()
 
 	request.tx, err = v.db.Begin()
 	if err != nil {
-		return nil, err
+		return respInternalError
 	}
 
 	var response *Response
@@ -104,7 +103,7 @@ func (v *Vimages) Do(request *Request) (*Response, error) {
 		response = delete(request)
 	default:
 		defer request.tx.Rollback()
-		return nil, errMethod
+		return respUnsupportedMethod
 	}
 
 	if response.Fail {
@@ -113,6 +112,8 @@ func (v *Vimages) Do(request *Request) (*Response, error) {
 		defer request.tx.Commit()
 	}
 
-	return response, nil
+	fmt.Println(response)
+
+	return response
 
 }
